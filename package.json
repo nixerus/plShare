@@ -1,0 +1,15 @@
+{
+  "name": "File",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "express": "^4.16.4",
+    "express-fileupload": "^1.1.3-alpha.2",
+    "path": "^0.12.7",
+    "request-animation-stream": "^0.1.1",
+    "request": "latest",
+    "mongodb": "latest"
+  }
+}
