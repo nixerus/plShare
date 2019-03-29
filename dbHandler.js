@@ -27,7 +27,7 @@ class DatabaseHandler {
                     return;
                 }
 
-                db.db(config.plutoDatabase).collection("cookie").findOne({cookie: cookie},function (err, result) {
+                db.db(config.plutoDatabase).collection("cookies").findOne({cookie: cookie},function (err, result) {
                     if(err) reject(err);
                     resolve(result);
                     db.close();
@@ -56,6 +56,7 @@ class DatabaseHandler {
                 db.db("pluto").collection("fileStorage").insertOne({
                     name: id,
                     data: data,
+                    uploader: user
                 }).then(function (res) {
                     resolve({
                         success: true,
