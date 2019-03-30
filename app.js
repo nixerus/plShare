@@ -4,7 +4,10 @@ const request = require('request');
 const fs = require('fs');
 const fileupload = require('express-fileupload')
 const db = require("./dbHandler.js");
-const dbHandler = new db();
+let dbHandler;
+new db().setup().then(function (newDB) {
+    dbHandler = newDB;
+});
 
 const config = require("./config.js");
 
@@ -36,7 +39,7 @@ app.get('/:id', function(req,res){
 });
 
 app.get('/', function(req,res){
-    res.send("This is using Pluto! Epic!")
+    res.status(200).send("This is using Pluto! Epic!")
 });
 
 app.post('/api/upload', function(req,res){
