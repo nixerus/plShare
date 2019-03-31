@@ -18,7 +18,10 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
 
 app.use(express.json());
-app.use(fileupload())
+app.use(fileupload({
+    useTempFiles : true,
+    tempFileDir : "/tmp/"
+}));
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -28,14 +31,48 @@ app.get('/:id', function(req,res){
         if(!result){
             res.status(404).send("Nothing here!");
         } else {
-            let data = new Buffer(result.data,'base64');
-            res.writeHead(200, {
-                'Content-Type': 'image/png',
-                'Content-Length': data.length
-            });
-            res.end(data);
+            if(result.data) {
+                console.log(id + " indexed - it is using base64!!")
+                let data = new Buffer(result.data, 'base64');
+                res.writeHead(200, {
+                    'Content-Type': 'image/png',
+                    'Content-Length': data.length
+                });
+                res.end(data);
+                return;
+            }
+            dbHandler.bucket.openDownloadStreamByName(id + ".png").pipe(res).catch(function (err) {
+                res.status(500).send(err);
+            })
         }
     })
+});
+
+app.get('/info/:id', function(req, res){
+    let id = req.params.id;
+    dbHandler.getObj(id).then(function (result) {
+        if(!result) {
+            res.status(404).send("Nothing here!");
+        } else {
+            let info = {
+                imageId: id,
+                imageUploader: result.uploader,
+                uploadedAt: result.uploadTime,
+                type: ""
+            };
+            if(result.data){
+                info.type = "base64";
+            } else {
+                info.type = "gridfs"
+            }
+            const jsonString = JSON.stringify(info);
+            res.writeHead(200, {
+                'Content-Type': 'application/json',
+                'Content-Length': jsonString.length
+            });
+            res.end(jsonString);
+        }
+    });
 });
 
 app.get('/', function(req,res){
@@ -52,10 +89,11 @@ app.post('/api/upload', function(req,res){
         }
         dbHandler.getAuthorised(cookie).then(function (user) {
             if(!user){
-                res.status(401).send("Insert funny access denied message here!")
+                res.status(401).send("Insert funny access denied message here!");
                 return;
             }
-            dbHandler.insertData(user.userid,file.data.toString('base64')).then(function (data) {
+            let path = file.tempFilePath;
+            dbHandler.insertData(user.userid,path).then(function (data) {
                 if(!data.success){
                     res.status(500).send(data);
                 } else {
