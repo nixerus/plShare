@@ -41,9 +41,14 @@ app.get('/:id', function(req,res){
                 res.end(data);
                 return;
             }
-            dbHandler.bucket.openDownloadStreamByName(id + ".png").pipe(res).catch(function (err) {
-                res.status(500).send(err);
-            })
+            try {
+                res.writeHead(200, {
+                    'Content-Type': 'image/png',
+                });
+                dbHandler.bucket.openDownloadStreamByName(id + ".png").pipe(res)
+            } catch(error) {
+                res.status(500).send("WHAT THE FUCK? If you get this, screenshot the following to Netx#9697: " + error);
+            }
         }
     })
 });
