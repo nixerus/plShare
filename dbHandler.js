@@ -1,5 +1,7 @@
 const mongo = require("mongodb");
 const config = require("./config.js");
+const fs = require('fs');
+
 
 function makeid(length) {
     let text = "";
@@ -17,6 +19,7 @@ class DatabaseHandler {
         this.client = mongo.MongoClient;
         this.url = "mongodb://" + config.dbLocation + ":27017/" + config.plutoDatabase;
         this.db = [];
+        this.bucket = [];
     }
 
     setup(){
@@ -24,6 +27,7 @@ class DatabaseHandler {
         return new Promise(function (resolve, reject) {
             obj.client.connect(obj.url).then(function (db) {
                 obj.db = db.db(config.plutoDatabase);
+                obj.bucket = new mongo.GridFSBucket(db.db(config.plutoDatabase),{bucketName: "imageHosting"});
                 resolve(obj);
             })
         });
@@ -52,23 +56,26 @@ class DatabaseHandler {
         let obj = this;
         return new Promise(function (resolve, reject) {
             let id = makeid(7);
-           obj.db.collection("fileStorage").insertOne({
-                name: id,
-                data: data,
-                uploader: user
-            }).then(function (res) {
-                resolve({
-                    success: true,
-                    result: id
+            fs.createReadStream(data).pipe(obj.bucket.openUploadStream(id + ".png")).on('error', function (error) {
+                reject(error);
+            }).on('finish', function (error) {
+                obj.db.collection("fileStorage").insertOne({
+                    name: id,
+                    uploader: user,
+                    uploadTime: new Date().toDateString()
+                }).then(function (res) {
+                    resolve({
+                        success: true,
+                        result: id
+                    })
+                }).catch(function (err) {
+                    resolve({
+                        success: false,
+                        result: err,
+                    });
                 })
-            }).catch(function (err) {
-                resolve({
-                    success: false,
-                    result: err,
-                });
-                return;
-            })
-        })
+            });
+        });
     }
 }
 
